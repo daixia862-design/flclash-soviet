@@ -5,7 +5,20 @@
 
 ![仪表盘](docs/screenshots/dashboard.png)
 
-> 非官方修改，GPL-3.0，基于 FlClash `v0.9.2`。本仓库只分发**源码级改动与美术素材**，不含任何编译产物。
+> 非官方修改，GPL-3.0，基于 FlClash `v0.9.2`。本仓库只分发**源码级改动与美术素材**。
+
+## 下载
+
+现成的包在 [Releases](https://github.com/daixia862-design/flclash-soviet/releases/latest)：
+
+| 文件 | 说明 |
+| --- | --- |
+| `FlClash-Soviet-1.0.0-windows-x64.zip` | 编译好的 Windows x64 运行包，解压后直接跑 `FlClash.exe`，免安装 |
+| `flclash-soviet-1.0.0-source.zip` | 完整源码树（Dart + Windows runner + 素材） |
+
+> 运行时包与官方 FlClash 共用 `%APPDATA%\com.follow\clash` 数据目录，装之前建议先备份原配置。
+
+---
 
 ---
 
