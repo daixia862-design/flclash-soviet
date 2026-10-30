@@ -1,0 +1,1175 @@
+diff --git a/lib/common/constant.dart b/lib/common/constant.dart
+index f5b22e0..268cf56 100644
+--- a/lib/common/constant.dart
++++ b/lib/common/constant.dart
+@@ -163,7 +163,9 @@ const proxiesListStoreKey = PageStorageKey<String>('proxies_list');
+ const toolsStoreKey = PageStorageKey<String>('tools');
+ const profilesStoreKey = PageStorageKey<String>('profiles');
+ 
+-const defaultPrimaryColor = 0xFF007AFF;
++// The flag red of `lib/ui/soviet.dart`, kept as a literal because common code
++// must not depend on the widget layer.
++const defaultPrimaryColor = 0xFFC1121F;
+ 
+ const maxLogsLength = 5000;
+ const maxRequestsLength = 2000;
+@@ -174,17 +176,17 @@ const pausedMaxDnsQueriesLength = maxDnsQueriesLength * 2;
+ 
+ const trafficSampleLength = 30;
+ 
+-// iOS 27's system colors but the deeper blue of earlier iOS, in the order of the
+-// macOS accent colors.
++// A printing set: flag red, blood red, gold, ochre, steel and paper. The seeds
++// whose hue is red print the Soviet scheme, the rest stay dynamic.
+ const defaultPrimaryColors = [
+   defaultPrimaryColor,
+-  0xFFCB30E0,
+-  0xFFFF2D55,
+-  0xFFFF383C,
+-  0xFFFF8D28,
+-  0xFFFFCC00,
+-  0xFF34C759,
+-  0xFF8E8E93,
++  0xFF7F0D13,
++  0xFFE63946,
++  0xFFE8B21C,
++  0xFFB98A00,
++  0xFF4C5561,
++  0xFF8C1C13,
++  0xFFEDE3D0,
+ ];
+ 
+ const scriptTemplate = '''
+diff --git a/lib/l10n/intl/messages_zh_CN.dart b/lib/l10n/intl/messages_zh_CN.dart
+index 70e3a18..1cd720b 100644
+--- a/lib/l10n/intl/messages_zh_CN.dart
++++ b/lib/l10n/intl/messages_zh_CN.dart
+@@ -447,7 +447,7 @@ class MessageLookup extends MessageLookupByLibrary {
+     ),
+     "cut": MessageLookupByLibrary.simpleMessage("剪切"),
+     "dark": MessageLookupByLibrary.simpleMessage("深色"),
+-    "dashboard": MessageLookupByLibrary.simpleMessage("仪表盘"),
++    "dashboard": MessageLookupByLibrary.simpleMessage("共产计划"),
+     "dashboardAddableSection": MessageLookupByLibrary.simpleMessage("可添加"),
+     "databaseWriteFailedTip": MessageLookupByLibrary.simpleMessage(
+       "保存更改失败，已回滚",
+@@ -1034,7 +1034,7 @@ class MessageLookup extends MessageLookupByLibrary {
+     "privateKey": MessageLookupByLibrary.simpleMessage("私钥"),
+     "privateKeyPassphrase": MessageLookupByLibrary.simpleMessage("私钥密码"),
+     "process": MessageLookupByLibrary.simpleMessage("进程"),
+-    "profile": MessageLookupByLibrary.simpleMessage("配置"),
++    "profile": MessageLookupByLibrary.simpleMessage("机场公社"),
+     "profileAutoUpdateIntervalInvalidValidationDesc":
+         MessageLookupByLibrary.simpleMessage("请输入有效间隔时间格式"),
+     "profileAutoUpdateIntervalNullValidationDesc":
+@@ -1060,7 +1060,7 @@ class MessageLookup extends MessageLookupByLibrary {
+     "profileUrlNullValidationDesc": MessageLookupByLibrary.simpleMessage(
+       "请输入配置URL",
+     ),
+-    "profiles": MessageLookupByLibrary.simpleMessage("配置"),
++    "profiles": MessageLookupByLibrary.simpleMessage("机场公社"),
+     "profilesSort": MessageLookupByLibrary.simpleMessage("配置排序"),
+     "project": MessageLookupByLibrary.simpleMessage("项目"),
+     "protocol": MessageLookupByLibrary.simpleMessage("协议"),
+@@ -1069,7 +1069,7 @@ class MessageLookup extends MessageLookupByLibrary {
+     "providerInUse": m65,
+     "providerUrlTip": MessageLookupByLibrary.simpleMessage("仅支持远程资源"),
+     "providers": MessageLookupByLibrary.simpleMessage("外部资源"),
+-    "proxies": MessageLookupByLibrary.simpleMessage("代理"),
++    "proxies": MessageLookupByLibrary.simpleMessage("共产国际"),
+     "proxiesCount": m66,
+     "proxiesProfileLabel": m67,
+     "proxiesRemovedTip": m68,
+diff --git a/lib/models/config.dart b/lib/models/config.dart
+index 570089b..7762da5 100644
+--- a/lib/models/config.dart
++++ b/lib/models/config.dart
+@@ -86,7 +86,12 @@ const defaultNetworkProps = NetworkProps();
+ const defaultProxiesStyleProps = ProxiesStyleProps();
+ const defaultWindowProps = WindowProps();
+ const defaultAccessControlProps = AccessControlProps();
+-const defaultThemeProps = ThemeProps(primaryColor: defaultPrimaryColor);
++const defaultThemeProps = ThemeProps(
++  primaryColor: defaultPrimaryColor,
++  themeMode: ThemeMode.light,
++  pureBlack: false,
++  fontFamily: 'SovietPoster',
++);
+ 
+ HotKeyAction _defaultHotKeyAction(HotAction action, PhysicalKeyboardKey key) {
+   return HotKeyAction(
+diff --git a/lib/ui/color.dart b/lib/ui/color.dart
+index 8583b25..6dcb4fa 100644
+--- a/lib/ui/color.dart
++++ b/lib/ui/color.dart
+@@ -14,6 +14,8 @@ import 'package:material_color_utilities/material_color_utilities.dart'
+         Variant;
+ import 'package:material_ui/material_ui.dart';
+ 
++import 'soviet.dart';
++
+ enum ColorStyle {
+   vivid,
+   tinted,
+@@ -64,7 +66,7 @@ ColorScheme seededColorScheme({
+     ColorStyle.soft || ColorStyle.monochrome => null,
+   };
+   final primaryColor = accent?.primary ?? role(MaterialDynamicColors.primary);
+-  return ColorScheme(
++  final base = ColorScheme(
+     brightness: brightness,
+     primary: primaryColor,
+     onPrimary: accent?.onPrimary ?? role(MaterialDynamicColors.onPrimary),
+@@ -139,6 +141,111 @@ ColorScheme seededColorScheme({
+     ),
+     outlineVariant: neutral(MaterialDynamicColors.outlineVariant, 4),
+   );
++  return _sovietTint(base, source: source, dark: dark);
++}
++
++/// A seed only counts as a red flag once it carries enough colour to read as
++/// cloth, and its hue has to land where CAM16 puts red rather than orange.
++bool _isSovietSeed(Hct seed) =>
++    seed.hue >= sovietHueMin &&
++    seed.hue <= sovietHueMax &&
++    seed.chroma >= sovietChromaMin;
++
++/// Red seeds are printed rather than generated: crimson plates, gold and steel
++/// ornament, and printed paper for the ground. Every other seed keeps the
++/// scheme DynamicColor derived, so a green or blue theme is left alone.
++ColorScheme _sovietTint(
++  ColorScheme base, {
++  required Hct source,
++  required bool dark,
++}) {
++  if (!_isSovietSeed(source)) {
++    return base;
++  }
++  if (dark) {
++    return base.copyWith(
++      primary: const Color(0xFFD01A28),
++      onPrimary: const Color(0xFFFFF3E0),
++      primaryContainer: const Color(0xFF7E0A12),
++      onPrimaryContainer: const Color(0xFFF7D67A),
++      primaryFixed: const Color(0xFFF0434E),
++      primaryFixedDim: const Color(0xFFC1121F),
++      onPrimaryFixed: const Color(0xFF2A0609),
++      onPrimaryFixedVariant: const Color(0xFFF7D67A),
++      secondary: const Color(0xFFE8B21C),
++      onSecondary: const Color(0xFF241A00),
++      secondaryContainer: const Color(0xFF4A3700),
++      onSecondaryContainer: const Color(0xFFF7D67A),
++      secondaryFixed: const Color(0xFFE8B21C),
++      secondaryFixedDim: const Color(0xFFB98A00),
++      onSecondaryFixed: const Color(0xFF241A00),
++      onSecondaryFixedVariant: const Color(0xFF3A2A00),
++      tertiary: const Color(0xFF4C5561),
++      onTertiary: const Color(0xFFFFF3E0),
++      tertiaryContainer: const Color(0xFF333B45),
++      onTertiaryContainer: const Color(0xFFDCE3EC),
++      error: const Color(0xFFFFA000),
++      onError: const Color(0xFF291A00),
++      errorContainer: const Color(0xFF6B3F00),
++      onErrorContainer: const Color(0xFFFFE0A6),
++      outline: const Color(0xFF8E7A6A),
++      outlineVariant: const Color(0xFF3E2C24),
++      onSurface: const Color(0xFFF2E7D8),
++      onSurfaceVariant: const Color(0xFFC4B6A4),
++      inverseSurface: const Color(0xFFF2E7D8),
++      onInverseSurface: const Color(0xFF14100F),
++      inversePrimary: const Color(0xFFB00D1C),
++      surface: const Color(0xFF170A0B),
++      surfaceBright: const Color(0xFF48201F),
++      surfaceDim: const Color(0xFF0F0405),
++      surfaceContainerLowest: const Color(0xFF110607),
++      surfaceContainerLow: const Color(0xFF1E0C0D),
++      surfaceContainer: const Color(0xFF261110),
++      surfaceContainerHigh: const Color(0xFF301716),
++      surfaceContainerHighest: const Color(0xFF3C1E1C),
++    );
++  }
++  return base.copyWith(
++    primary: const Color(0xFF8E1116),
++    onPrimary: const Color(0xFFFFF3E0),
++    primaryContainer: const Color(0xFFA31419),
++    onPrimaryContainer: const Color(0xFFFFF3E0),
++    primaryFixed: const Color(0xFFC1121F),
++    primaryFixedDim: const Color(0xFF8E1116),
++    onPrimaryFixed: const Color(0xFFFFF3E0),
++    onPrimaryFixedVariant: const Color(0xFF6B0A0F),
++    secondary: const Color(0xFFB98A00),
++    onSecondary: const Color(0xFFFFF3E0),
++    secondaryContainer: const Color(0xFFF3E2B8),
++    onSecondaryContainer: const Color(0xFF3A2A00),
++    secondaryFixed: const Color(0xFFE8B21C),
++    secondaryFixedDim: const Color(0xFFB98A00),
++    onSecondaryFixed: const Color(0xFF3A2A00),
++    onSecondaryFixedVariant: const Color(0xFF5A4400),
++    tertiary: const Color(0xFF4C5561),
++    onTertiary: const Color(0xFFFFF3E0),
++    tertiaryContainer: const Color(0xFFD7DEE7),
++    onTertiaryContainer: const Color(0xFF1A2128),
++    error: const Color(0xFFA5291B),
++    onError: const Color(0xFFFFF3E0),
++    errorContainer: const Color(0xFFF7D2C8),
++    onErrorContainer: const Color(0xFF3A0D07),
++    outline: const Color(0xFFB0705F),
++    outlineVariant: const Color(0xFFDCC0AE),
++    onSurface: const Color(0xFF3B1712),
++    onSurfaceVariant: const Color(0xFF6E4A3E),
++    inverseSurface: const Color(0xFF3B1712),
++    onInverseSurface: const Color(0xFFF4EADA),
++    inversePrimary: const Color(0xFFF0434E),
++    surface: const Color(0xFFF4EADA),
++    surfaceBright: const Color(0xFFFFFCF3),
++    surfaceDim: const Color(0xFFE3D3B8),
++    surfaceContainerLowest: const Color(0xFFFFF9EC),
++    surfaceContainerLow: const Color(0xFFFBF3E4),
++    surfaceContainer: const Color(0xFFF7EDDC),
++    surfaceContainerHigh: const Color(0xFFEFE2CD),
++    surfaceContainerHighest: const Color(0xFFE7D7BE),
++  );
+ }
+ 
+ const _surfaceChroma = 3.0;
+@@ -233,11 +340,11 @@ DynamicScheme _dynamicScheme(Hct source, bool dark, ColorStyle style) {
+ }
+ 
+ final _successPalette = TonalPalette.fromHct(
+-  Hct.fromInt(Colors.green.toARGB32()),
++  Hct.from(48, 64, 46),
+ );
+ 
+ final _warningPalette = TonalPalette.fromHct(
+-  Hct.fromInt(Colors.orange.toARGB32()),
++  Hct.from(26, 82, 50),
+ );
+ 
+ extension ColorExtension on Color {
+diff --git a/lib/ui/scaffold.dart b/lib/ui/scaffold.dart
+index 9ae9c66..c3fcb74 100644
+--- a/lib/ui/scaffold.dart
++++ b/lib/ui/scaffold.dart
+@@ -1,4 +1,4 @@
+-import 'dart:math' as math;
++﻿import 'dart:math' as math;
+ import 'dart:ui' show ImageFilter, lerpDouble;
+ 
+ import 'package:fl_clash/common/iterable.dart';
+@@ -10,6 +10,7 @@ import 'package:fl_clash/ui/metrics.dart';
+ import 'package:fl_clash/ui/models.dart';
+ import 'package:fl_clash/ui/pop_scope.dart';
+ import 'package:fl_clash/ui/shape.dart';
++import 'package:fl_clash/ui/soviet.dart';
+ import 'package:fl_clash/ui/surface.dart';
+ import 'package:fl_clash/ui/typography.dart';
+ import 'package:fl_clash/ui/view_scope.dart';
+@@ -546,19 +547,36 @@ class CommonScaffoldState extends State<CommonScaffold>
+   }
+ 
+   Widget _buildTitle({required bool compact}) {
+-    return widget.titleWidget ??
+-        (widget.titleMenuItems.isEmpty
+-            ? Text(widget.title!)
+-            : CommonPopupBox(
+-                placement: PopupPlacement.overAnchorStart,
+-                targetBuilder: (open) => _TitleMenuButton(
+-                  title: widget.title!,
+-                  compact: compact,
+-                  onPressed: open,
+-                ),
+-                popupBuilder: (_) =>
+-                    CommonPopupMenu(items: widget.titleMenuItems),
+-              ));
++    final custom = widget.titleWidget;
++    if (custom != null) {
++      return custom;
++    }
++    final title = widget.title!;
++    final label = widget.titleMenuItems.isEmpty
++        ? Text(title)
++        : CommonPopupBox(
++            placement: PopupPlacement.overAnchorStart,
++            targetBuilder: (open) => _TitleMenuButton(
++              title: title,
++              compact: compact,
++              onPressed: open,
++            ),
++            popupBuilder: (_) => CommonPopupMenu(items: widget.titleMenuItems),
++          );
++    return Row(
++      mainAxisSize: MainAxisSize.min,
++      children: [
++        const SovietEmblem(size: 20),
++        const SizedBox(width: 8),
++        SovietStar(
++          size: 15,
++          color: context.colorScheme.sovietGold,
++          innerRatio: 0.42,
++        ),
++        const SizedBox(width: 9),
++        Flexible(child: label),
++      ],
++    );
+   }
+ 
+   List<Widget> _buildActions(
+@@ -775,6 +793,7 @@ class CommonScaffoldState extends State<CommonScaffold>
+         alignment: Alignment.bottomCenter,
+         clipBehavior: Clip.none,
+         children: [
++          const Positioned.fill(child: _BarBand()),
+           ListenableBuilder(
+             listenable: Listenable.merge([_appBarState, _searchCovered]),
+             builder: (_, _) {
+@@ -959,22 +978,37 @@ class CommonScaffoldState extends State<CommonScaffold>
+           appBar: appBar,
+           extendBodyBehindAppBar: barFloats,
+           body: _BodyScope(
+-            child: docked == null
+-                ? content
+-                : Stack(
+-                    fit: StackFit.expand,
+-                    children: [
+-                      content,
+-                      if (!_sorting)
+-                        Align(
+-                          alignment: Alignment.bottomCenter,
+-                          child: _buildDockedSearch(docked),
+-                        ),
+-                    ],
++            child: _SovietBackdrop(
++              child: Column(
++                children: [
++                  const SovietFlagStrip(height: 3),
++                  Expanded(
++                    child: SovietFrame(
++                      color: context.colorScheme.sovietGold,
++                      length: 18,
++                      padding: EdgeInsets.zero,
++                      child: docked == null
++                          ? content
++                          : Stack(
++                              fit: StackFit.expand,
++                              children: [
++                                content,
++                                if (!_sorting)
++                                  Align(
++                                    alignment: Alignment.bottomCenter,
++                                    child: _buildDockedSearch(docked),
++                                  ),
++                              ],
++                            ),
++                    ),
+                   ),
++                ],
++              ),
++            ),
+           ),
+           resizeToAvoidBottomInset: widget.resizeToAvoidBottomInset,
+           backgroundColor: widget.backgroundColor,
++          bottomNavigationBar: const SovietFlagStrip(height: 4),
+         ),
+       );
+     }
+@@ -2280,6 +2314,13 @@ class AppBarInsetScope extends StatelessWidget {
+         appBarTheme: theme.appBarTheme.copyWith(
+           leadingWidth: appBarLeadingWidth(compact),
+           toolbarHeight: pageToolbarHeight,
++          backgroundColor: theme.colorScheme.primary,
++          foregroundColor: theme.colorScheme.onPrimary,
++          iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
++          actionsIconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
++          titleTextStyle: AppTextStyle.pageTitle
++              .of(context)
++              .copyWith(color: theme.colorScheme.onPrimary),
+         ),
+       ),
+       child: child,
+@@ -2367,3 +2408,117 @@ class BaseScaffold extends StatelessWidget {
+     return CommonScaffold(body: body, title: title);
+   }
+ }
++
++/// The page floor, struck with faint beams so it reads as printed rather
++/// than rendered.
++class _SovietBackdrop extends StatelessWidget {
++  const _SovietBackdrop({required this.child});
++
++  final Widget child;
++
++  @override
++  Widget build(BuildContext context) {
++    final dark = Theme.of(context).brightness == Brightness.dark;
++    return Stack(
++      fit: StackFit.expand,
++      children: [
++        CustomPaint(
++          painter: _BeamPainter(
++            color: context.colorScheme.sovietGold,
++            alpha: dark ? 0.075 : 0.06,
++          ),
++        ),
++        if (!dark)
++          Align(
++            alignment: Alignment.bottomCenter,
++            child: IgnorePointer(
++              child: Opacity(
++                opacity: 0.9,
++                child: Image.asset(
++                  'assets/images/soviet/skyline.png',
++                  width: double.infinity,
++                  fit: BoxFit.fitWidth,
++                ),
++              ),
++            ),
++          ),
++        if (!dark)
++          Align(
++            alignment: Alignment.topRight,
++            child: IgnorePointer(
++              child: Opacity(
++                opacity: 0.08,
++                child: ColorFiltered(
++                  colorFilter: const ColorFilter.mode(
++                    SovietPalette.redDeep,
++                    BlendMode.srcIn,
++                  ),
++                  child: Image.asset(
++                    'assets/images/soviet/header_lenin.png',
++                    height: 240,
++                  ),
++                ),
++              ),
++            ),
++          ),
++        child,
++      ],
++    );
++  }
++}
++
++/// The crimson plate behind every page title, with the flag's gold hairline
++/// where it meets the paper.
++class _BarBand extends StatelessWidget {
++  const _BarBand();
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = context.colorScheme;
++    return DecoratedBox(
++      decoration: BoxDecoration(
++        color: scheme.primary,
++        border: Border(
++          bottom: BorderSide(color: scheme.sovietGold, width: 2),
++        ),
++      ),
++      child: CustomPaint(
++        painter: _BeamPainter(
++          color: Colors.white,
++          alpha: Theme.of(context).brightness == Brightness.dark ? 0.03 : 0.05,
++        ),
++      ),
++    );
++  }
++}
++
++class _BeamPainter extends CustomPainter {
++  const _BeamPainter({required this.color, required this.alpha});
++
++  final Color color;
++  final double alpha;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    if (size.isEmpty) {
++      return;
++    }
++    final paint = Paint()..color = color.withValues(alpha: alpha);
++    const band = 78.0;
++    const slant = 0.62;
++    final shift = size.height * slant;
++    for (var x = -shift; x < size.width + band; x += band * 2.4) {
++      final path = Path()
++        ..moveTo(x, 0)
++        ..lineTo(x + band, 0)
++        ..lineTo(x + band + shift, size.height)
++        ..lineTo(x + shift, size.height)
++        ..close();
++      canvas.drawPath(path, paint);
++    }
++  }
++
++  @override
++  bool shouldRepaint(_BeamPainter oldDelegate) =>
++      oldDelegate.color != color || oldDelegate.alpha != alpha;
++}
+diff --git a/lib/ui/shape.dart b/lib/ui/shape.dart
+index ad6d362..72d187e 100644
+--- a/lib/ui/shape.dart
++++ b/lib/ui/shape.dart
+@@ -3,18 +3,20 @@ import 'dart:ui' show ClipOp, lerpDouble;
+ 
+ import 'package:material_ui/material_ui.dart';
+ 
++/// Soviet plates are cut square. Every shelf, sheet and control shares the same
++/// 2 dp bevel, so a poster block and a button read as one print run.
+ abstract final class AppCorner {
+   static const double none = 0;
+-  static const double xs = 4;
+-  static const double sm = 8;
+-  static const double md = 16;
+-  static const double lg = 20;
+-  static const double xl = 24;
+-  static const double xxl = 28;
++  static const double xs = 2;
++  static const double sm = 2;
++  static const double md = 2;
++  static const double lg = 2;
++  static const double xl = 2;
++  static const double xxl = 2;
+ 
+-  /// UIAlertController's corner on iOS 27, rounder than a sheet's.
+-  static const double alert = 34;
+-  static const double full = 1000;
++  /// A dialog keeps the one visible cut, and it is square as well.
++  static const double alert = 2;
++  static const double full = 2;
+ 
+   static double fit(double shortestSide) {
+     final limit = shortestSide / 3;
+diff --git a/lib/ui/sidebar.dart b/lib/ui/sidebar.dart
+index 6196f5b..853a030 100644
+--- a/lib/ui/sidebar.dart
++++ b/lib/ui/sidebar.dart
+@@ -6,6 +6,7 @@ import 'package:fl_clash/ui/icons/icons.dart';
+ import 'package:fl_clash/ui/l10n.dart';
+ import 'package:fl_clash/ui/scroll_behavior.dart';
+ import 'package:fl_clash/ui/shape.dart';
++import 'package:fl_clash/ui/soviet.dart';
+ import 'package:fl_clash/ui/surface.dart';
+ import 'package:fl_clash/ui/typography.dart';
+ import 'package:flutter/services.dart';
+@@ -231,10 +232,15 @@ class _SidebarOverlay extends StatelessWidget {
+ 
+ class _SidebarColors {
+   _SidebarColors(ColorScheme scheme)
+-    : selectedFill = scheme.onSurface.withValues(alpha: 0.08),
+-      label = scheme.onSurface,
+-      icon = scheme.onSurfaceVariant,
+-      indicator = scheme.primary,
++    : pane = isSovietScheme(scheme) ? scheme.primary : Colors.transparent,
++      selectedFill = isSovietScheme(scheme)
++          ? scheme.onPrimary.withValues(alpha: 0.2)
++          : scheme.onSurface.withValues(alpha: 0.08),
++      label = isSovietScheme(scheme) ? scheme.onPrimary : scheme.onSurface,
++      icon = isSovietScheme(scheme)
++          ? scheme.onPrimary.withValues(alpha: 0.78)
++          : scheme.onSurfaceVariant,
++      indicator = isSovietScheme(scheme) ? scheme.sovietGold : scheme.primary,
+       overlay = WidgetStateProperty.fromMap({
+         WidgetState.pressed: scheme.onSurface.withValues(alpha: 0.06),
+         WidgetState.focused: scheme.onSurface.withValues(alpha: 0.1),
+@@ -242,6 +248,7 @@ class _SidebarColors {
+         WidgetState.any: Colors.transparent,
+       });
+ 
++  final Color pane;
+   final Color selectedFill;
+   final Color label;
+   final Color icon;
+@@ -292,10 +299,21 @@ class _SidebarPane extends StatelessWidget {
+         : label;
+     return SizedBox(
+       width: lerpDouble(compactWidth, _expandedWidth, progress),
+-      child: Column(
++      child: ColoredBox(
++        color: colors.pane,
++        child: Column(
+         crossAxisAlignment: CrossAxisAlignment.stretch,
+         children: [
+           SizedBox(height: windowControls.height + _verticalInset),
++          const SizedBox(height: 8),
++          Center(
++            child: SovietStar(
++              size: 12,
++              color: context.colorScheme.sovietGold,
++              innerRatio: 0.42,
++            ),
++          ),
++          const SizedBox(height: 8),
+           Align(
+             alignment: AlignmentDirectional.centerStart,
+             child: _SidebarButton(
+@@ -358,6 +376,7 @@ class _SidebarPane extends StatelessWidget {
+           const SizedBox(height: _verticalInset),
+         ],
+       ),
++      ),
+     );
+   }
+ }
+diff --git a/lib/ui/soviet.dart b/lib/ui/soviet.dart
+new file mode 100644
+index 0000000..128e29b
+--- /dev/null
++++ b/lib/ui/soviet.dart
+@@ -0,0 +1,357 @@
++import 'dart:math' as math;
++
++import 'package:material_ui/material_ui.dart';
++
++import 'typography.dart';
++
++/// The flag, the star and the paper of Soviet graphic design, kept apart from
++/// the M3 roles so a page can reach for them directly.
++abstract final class SovietPalette {
++  static const Color red = Color(0xFFC1121F);
++  static const Color redDeep = Color(0xFF7F0D13);
++  static const Color redBright = Color(0xFFE63946);
++  static const Color blood = Color(0xFF6E0A11);
++  static const Color gold = Color(0xFFE8B21C);
++  static const Color goldPale = Color(0xFFF7D67A);
++  static const Color ink = Color(0xFF14100F);
++  static const Color paper = Color(0xFFEDE3D0);
++  static const Color bone = Color(0xFFF5EFE3);
++  static const Color steel = Color(0xFF8A8F99);
++}
++
++/// The seed the theme boots with, and the one the picker marks as default.
++const int sovietSeedArgb = 0xFFC1121F;
++
++const Color sovietSeedColor = Color(sovietSeedArgb);
++
++/// Where the crimson band sits in HCT hue, wide enough to catch the picker's
++/// reds and reds the system reports for a dark accent.
++const double sovietHueMin = 4;
++
++const double sovietHueMax = 46;
++
++const double sovietChromaMin = 24;
++
++const String sovietUnion = '\u0421\u0421\u0421\u0420';
++
++const String sovietMotto =
++    '\u0421\u041B\u0410\u0412\u0410 \u0422\u0420\u0423\u0414\u0423 \u00B7 \u041F\u0420\u041E\u041B\u0415\u0422\u0410\u0420\u0418\u0418 \u0412\u0421\u0415\u0425 \u0421\u0422\u0420\u0410\u041D, \u0421\u041E\u0415\u0414\u0418\u041D\u042F\u0419\u0422\u0415\u0421\u042C!';
++
++const String sovietGlory = '\u0421\u041B\u0410\u0412\u0410 \u0422\u0420\u0423\u0414\u0423';
++
++/// The steel that marks a scheme as carrying the flag palette; it rides
++/// on `tertiary` so a page can tell a Soviet scheme from any other red one.
++const Color sovietSteel = Color(0xFF4C5561);
++
++bool isSovietScheme(ColorScheme scheme) =>
++    scheme.tertiary.toARGB32() == sovietSteel.toARGB32();
++
++Path starPath(
++  Size size, {
++  double innerRatio = 0.4,
++  double rotation = -math.pi / 2,
++}) {
++  final center = Offset(size.width / 2, size.height / 2);
++  final radius = math.min(size.width, size.height) / 2;
++  final path = Path();
++  for (var i = 0; i < 10; i++) {
++    final r = i.isEven ? radius : radius * innerRatio;
++    final angle = rotation + i * math.pi / 5;
++    final point = Offset(
++      center.dx + r * math.cos(angle),
++      center.dy + r * math.sin(angle),
++    );
++    if (i == 0) {
++      path.moveTo(point.dx, point.dy);
++    } else {
++      path.lineTo(point.dx, point.dy);
++    }
++  }
++  return path..close();
++}
++
++class SovietStarPainter extends CustomPainter {
++  const SovietStarPainter({
++    required this.color,
++    this.innerRatio = 0.4,
++    this.rimColor,
++    this.rimWidth = 0,
++  });
++
++  final Color color;
++  final double innerRatio;
++  final Color? rimColor;
++  final double rimWidth;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final path = starPath(size, innerRatio: innerRatio);
++    canvas.drawPath(
++      path,
++      Paint()
++        ..color = color
++        ..isAntiAlias = true
++        ..style = PaintingStyle.fill,
++    );
++    final rim = rimColor;
++    if (rim != null && rimWidth > 0) {
++      canvas.drawPath(
++        path,
++        Paint()
++          ..color = rim
++          ..isAntiAlias = true
++          ..style = PaintingStyle.stroke
++          ..strokeWidth = rimWidth
++          ..strokeJoin = StrokeJoin.miter,
++      );
++    }
++  }
++
++  @override
++  bool shouldRepaint(SovietStarPainter oldDelegate) =>
++      oldDelegate.color != color ||
++      oldDelegate.innerRatio != innerRatio ||
++      oldDelegate.rimColor != rimColor ||
++      oldDelegate.rimWidth != rimWidth;
++}
++
++class SovietStar extends StatelessWidget {
++  const SovietStar({
++    super.key,
++    this.size = 16,
++    this.color = SovietPalette.gold,
++    this.innerRatio = 0.4,
++    this.rimColor,
++    this.rimWidth = 0,
++  });
++
++  final double size;
++  final Color color;
++  final double innerRatio;
++  final Color? rimColor;
++  final double rimWidth;
++
++  @override
++  Widget build(BuildContext context) {
++    return SizedBox.square(
++      dimension: size,
++      child: CustomPaint(
++        painter: SovietStarPainter(
++          color: color,
++          innerRatio: innerRatio,
++          rimColor: rimColor,
++          rimWidth: rimWidth,
++        ),
++      ),
++    );
++  }
++}
++
++/// The hammer and sickle plate the icon set is drawn from.
++class SovietEmblem extends StatelessWidget {
++  const SovietEmblem({super.key, this.size = 40, this.opacity = 1});
++
++  final double size;
++  final double opacity;
++
++  @override
++  Widget build(BuildContext context) {
++    return Opacity(
++      opacity: opacity,
++      child: Image.asset(
++        'assets/images/soviet/emblem.png',
++        width: size,
++        height: size,
++        filterQuality: FilterQuality.medium,
++      ),
++    );
++  }
++}
++
++/// A banner whose ends are cut on the slant, the way a printed slogan is.
++class SovietRibbon extends StatelessWidget {
++  const SovietRibbon({
++    super.key,
++    required this.text,
++    this.height = 34,
++    this.color = SovietPalette.red,
++    this.foregroundColor = SovietPalette.goldPale,
++    this.glyph,
++  });
++
++  final String text;
++  final double height;
++  final Color color;
++  final Color foregroundColor;
++  final Widget? glyph;
++
++  @override
++  Widget build(BuildContext context) {
++    final style = AppTextStyle.caption1
++        .of(context, emphasized: true)
++        .copyWith(
++          color: foregroundColor,
++          letterSpacing: 1.4,
++          height: 1,
++        );
++    return SizedBox(
++      height: height,
++      child: CustomPaint(
++        painter: _RibbonPainter(color: color),
++        child: Padding(
++          padding: EdgeInsets.symmetric(horizontal: height * 0.52),
++          child: Row(
++            mainAxisAlignment: MainAxisAlignment.center,
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              if (glyph != null) ...[glyph!, const SizedBox(width: 8)],
++              Flexible(
++                child: Text(
++                  text,
++                  maxLines: 1,
++                  overflow: TextOverflow.ellipsis,
++                  style: style,
++                ),
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++class _RibbonPainter extends CustomPainter {
++  const _RibbonPainter({required this.color});
++
++  final Color color;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final slant = size.height * 0.42;
++    final path = Path()
++      ..moveTo(slant, 0)
++      ..lineTo(size.width - slant, 0)
++      ..lineTo(size.width, size.height)
++      ..lineTo(0, size.height)
++      ..close();
++    canvas.drawPath(path, Paint()..color = color);
++    final edge = Paint()
++      ..color = SovietPalette.gold
++      ..strokeWidth = 1.6
++      ..style = PaintingStyle.stroke;
++    canvas.drawLine(
++      Offset(slant, 0.8),
++      Offset(size.width - slant, 0.8),
++      edge,
++    );
++    canvas.drawLine(
++      Offset(0, size.height - 0.8),
++      Offset(size.width, size.height - 0.8),
++      edge,
++    );
++  }
++
++  @override
++  bool shouldRepaint(_RibbonPainter oldDelegate) => oldDelegate.color != color;
++}
++
++/// A two-tone rule that reads as a flag flown across the page.
++class SovietFlagStrip extends StatelessWidget {
++  const SovietFlagStrip({super.key, this.height = 3, this.width});
++
++  final double height;
++  final double? width;
++
++  @override
++  Widget build(BuildContext context) {
++    return SizedBox(
++      height: height,
++      width: width,
++      child: const Row(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Expanded(flex: 3, child: ColoredBox(color: SovietPalette.red)),
++          Expanded(flex: 2, child: ColoredBox(color: SovietPalette.gold)),
++          Expanded(flex: 3, child: ColoredBox(color: SovietPalette.ink)),
++        ],
++      ),
++    );
++  }
++}
++
++/// Gold brackets around whatever sits inside, as on a bronze plaque.
++class SovietFrame extends StatelessWidget {
++  const SovietFrame({
++    super.key,
++    required this.child,
++    this.color = SovietPalette.gold,
++    this.length = 14,
++    this.strokeWidth = 1.6,
++    this.padding = const EdgeInsets.all(14),
++  });
++
++  final Widget child;
++  final Color color;
++  final double length;
++  final double strokeWidth;
++  final EdgeInsets padding;
++
++  @override
++  Widget build(BuildContext context) {
++    return CustomPaint(
++      painter: _FramePainter(
++        color: color,
++        length: length,
++        strokeWidth: strokeWidth,
++      ),
++      child: Padding(padding: padding, child: child),
++    );
++  }
++}
++
++class _FramePainter extends CustomPainter {
++  const _FramePainter({
++    required this.color,
++    required this.length,
++    required this.strokeWidth,
++  });
++
++  final Color color;
++  final double length;
++  final double strokeWidth;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final paint = Paint()
++      ..color = color
++      ..strokeWidth = strokeWidth
++      ..strokeCap = StrokeCap.square
++      ..style = PaintingStyle.stroke;
++    final w = size.width;
++    final h = size.height;
++    final l = math.min(length, math.min(w, h) / 2.5);
++    final corners = <Offset>[
++      Offset.zero,
++      Offset(w, 0),
++      Offset(0, h),
++      Offset(w, h),
++    ];
++    for (final corner in corners) {
++      final dx = corner.dx == 0 ? l : -l;
++      final dy = corner.dy == 0 ? l : -l;
++      canvas.drawLine(corner, Offset(corner.dx + dx, corner.dy), paint);
++      canvas.drawLine(corner, Offset(corner.dx, corner.dy + dy), paint);
++    }
++  }
++
++  @override
++  bool shouldRepaint(_FramePainter oldDelegate) =>
++      oldDelegate.color != color ||
++      oldDelegate.length != length ||
++      oldDelegate.strokeWidth != strokeWidth;
++}
++
++extension SovietColorScheme on ColorScheme {
++  Color get sovietGold => SovietPalette.gold;
++}
+diff --git a/lib/ui/typography.dart b/lib/ui/typography.dart
+index 22821db..dd30cc6 100644
+--- a/lib/ui/typography.dart
++++ b/lib/ui/typography.dart
+@@ -4,25 +4,32 @@ import 'package:material_ui/material_ui.dart';
+ /// two steps it lacks: [display] for a dashboard figure, [pageTitle] for an app
+ /// bar.
+ enum AppTextStyle {
+-  display(40, 44, emphasizedWeight: FontWeight.w700),
+-  largeTitle(34, 41, emphasizedWeight: FontWeight.w700),
+-  title1(28, 34, emphasizedWeight: FontWeight.w700),
+-  pageTitle(24, 30, weight: FontWeight.w600, emphasizedWeight: FontWeight.w700),
+-  title2(22, 28, emphasizedWeight: FontWeight.w700),
++  display(40, 44, emphasizedWeight: FontWeight.w900),
++  largeTitle(34, 41, emphasizedWeight: FontWeight.w900),
++  title1(28, 34, emphasizedWeight: FontWeight.w800),
++  pageTitle(
++    24,
++    30,
++    weight: FontWeight.w600,
++    emphasizedWeight: FontWeight.w800,
++    tracking: 1.2,
++  ),
++  title2(22, 28, emphasizedWeight: FontWeight.w800),
+   title3(20, 25),
+   headline(17, 22, weight: FontWeight.w600),
+   body(17, 22),
+   callout(16, 21),
+-  subheadline(15, 20),
++  subheadline(15, 20, tracking: 0.3),
+   footnote(13, 18),
+-  caption1(12, 16),
+-  caption2(11, 13);
++  caption1(12, 16, tracking: 0.7),
++  caption2(11, 13, tracking: 0.9);
+ 
+   const AppTextStyle(
+     this.size,
+     this.leading, {
+     this.weight = FontWeight.w400,
+     this.emphasizedWeight = FontWeight.w600,
++    this.tracking = 0,
+   });
+ 
+   final double size;
+@@ -30,6 +37,9 @@ enum AppTextStyle {
+   final FontWeight weight;
+   final FontWeight emphasizedWeight;
+ 
++  /// Letter spacing for the small caps a slogan is set in.
++  final double tracking;
++
+   TextStyle of(BuildContext context, {bool emphasized = false}) =>
+       _apply(_slotOf(Theme.of(context).textTheme)!, emphasized: emphasized);
+ 
+@@ -71,7 +81,7 @@ enum AppTextStyle {
+     fontSize: size,
+     height: leading / size,
+     fontWeight: emphasized ? emphasizedWeight : weight,
+-    letterSpacing: 0,
++    letterSpacing: tracking,
+   );
+ 
+   TextStyle? _on(TextStyle? base, {bool emphasized = false}) =>
+diff --git a/lib/ui/ui.dart b/lib/ui/ui.dart
+index aa5e57f..07bf175 100644
+--- a/lib/ui/ui.dart
++++ b/lib/ui/ui.dart
+@@ -64,6 +64,7 @@ export 'sidebar.dart';
+ export 'skeleton.dart';
+ export 'snap_sheet.dart';
+ export 'sortable.dart';
++export 'soviet.dart';
+ export 'super_reorderable_list.dart';
+ export 'surface.dart';
+ export 'switch.dart';
+diff --git a/lib/views/about.dart b/lib/views/about.dart
+index 0ecca4b..916eb64 100644
+--- a/lib/views/about.dart
++++ b/lib/views/about.dart
+@@ -151,27 +151,37 @@ class _AboutHero extends StatelessWidget {
+         children: [
+           _DeveloperModeDetector(
+             onEnterDeveloperMode: onEnterDeveloperMode,
+-            child: DecoratedBox(
+-              decoration: ShapeDecoration(
+-                color: context.raisedSurfaceLevel.colorOf(colorScheme),
+-                shape: AppShape.all(AppCorner.fit(_logoSize)),
+-              ),
+-              child: Padding(
+-                padding: const EdgeInsets.all(_logoInset),
+-                child: Image.asset(
+-                  'assets/images/icon.png',
+-                  width: _logoSize - _logoInset * 2,
+-                  height: _logoSize - _logoInset * 2,
++            child: SovietFrame(
++              padding: const EdgeInsets.all(10),
++              child: DecoratedBox(
++                decoration: ShapeDecoration(
++                  color: context.raisedSurfaceLevel.colorOf(colorScheme),
++                  shape: AppShape.all(AppCorner.fit(_logoSize)),
++                ),
++                child: Padding(
++                  padding: const EdgeInsets.all(_logoInset),
++                  child: Image.asset(
++                    'assets/images/icon.png',
++                    width: _logoSize - _logoInset * 2,
++                    height: _logoSize - _logoInset * 2,
++                  ),
+                 ),
+               ),
+             ),
+           ),
+-          const SizedBox(height: 20),
++          const SizedBox(height: 16),
++          const SizedBox(width: 132, child: SovietFlagStrip()),
++          const SizedBox(height: 12),
+           Text(
+             appName,
+             style: AppTextStyle.title2.of(context, emphasized: true),
+           ),
+-          const SizedBox(height: 10),
++          const SizedBox(height: 8),
++          SizedBox(
++            width: 340,
++            child: SovietRibbon(text: sovietMotto, height: 28),
++          ),
++          const SizedBox(height: 12),
+           Wrap(
+             spacing: 8,
+             runSpacing: 8,
+diff --git a/lib/views/dashboard/style.dart b/lib/views/dashboard/style.dart
+index e7c678a..099b8dc 100644
+--- a/lib/views/dashboard/style.dart
++++ b/lib/views/dashboard/style.dart
+@@ -1,4 +1,4 @@
+-import 'package:fl_clash/common/common.dart';
++﻿import 'package:fl_clash/common/common.dart';
+ import 'package:fl_clash/ui/ui.dart';
+ import 'package:intl/intl.dart' show NumberFormat;
+ import 'package:material_ui/material_ui.dart';
+@@ -105,13 +105,13 @@ abstract final class DashboardShadows {
+ /// Off the [AppCorner] scale: a dashboard card is taller than any other
+ /// surface in the app and keeps a larger corner than a sheet.
+ abstract final class DashboardCorner {
+-  static const desktopCard = 32.0;
+-  static const mobileCard = 34.0;
+-  static const block = 20.0;
+-  static const mobileBlock = 22.0;
+-  static const tab = 16.0;
+-  static const tableHeader = 12.0;
+-  static const badge = 14.0;
++  static const desktopCard = 3.0;
++  static const mobileCard = 3.0;
++  static const block = 3.0;
++  static const mobileBlock = 3.0;
++  static const tab = 3.0;
++  static const tableHeader = 2.0;
++  static const badge = 2.0;
+ }
+ 
+ final _groupedFormat = NumberFormat.decimalPattern('en');
+diff --git a/pubspec.yaml b/pubspec.yaml
+index f7c00b9..66d91d8 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -8,9 +8,9 @@ environment:
+ hooks:
+   user_defines:
+     setup:
+-      build_assets: true
++      build_assets: false
+     rust_api:
+-      build_assets: true
++      build_assets: false
+ 
+ dependencies:
+   flutter:
+@@ -101,6 +101,7 @@ flutter:
+     - assets/images/
+     - assets/images/avatar/
+     - assets/images/services/
++    - assets/images/soviet/
+     - core/Clash.Meta/component/ca/ca-certificates.crt
+     - path: assets/images/tray/unix/
+       platforms: [ linux, macos ]
+@@ -117,6 +118,14 @@ flutter:
+     - family: Twemoji
+       fonts:
+         - asset: assets/fonts/Twemoji.Mozilla.ttf
++    - family: PTSansNarrow
++      fonts:
++        - asset: assets/fonts/PTSansNarrow-Regular.ttf
++        - asset: assets/fonts/PTSansNarrow-Bold.ttf
++          weight: 700
++    - family: SovietPoster
++      fonts:
++        - asset: assets/fonts/NotoSansSC-Black.otf
+ flutter_intl:
+   enabled: true
+   class_name: AppLocalizations
