@@ -72,11 +72,12 @@ flutter build windows --release
 ## 目录
 
 ```
-overlay/    改动后的完整文件（13 个源码 + 18 个图片 + 3 个字体），直接覆盖到源码树
-patches/    仅文本改动的 unified diff（13 files changed, 767 insertions, 90 deletions）
-tools/      apply_runtime_assets.py —— 免编译换肤
-licenses/   PT Sans Narrow 与 Noto Sans SC 的 SIL OFL 1.1 许可
-docs/       截图与构建说明
+overlay/        改动后的完整文件（13 个源码 + 18 个图片 + 3 个字体），直接覆盖到源码树
+patches/        仅文本改动的 unified diff（13 files changed, 767 insertions, 90 deletions）
+tools/          apply_runtime_assets.py —— 免编译换肤
+tools/artwork/  生成图标、托盘、海报、天际线的 Pillow 脚本（路径按本机改）
+licenses/       PT Sans Narrow 与 Noto Sans SC 的 SIL OFL 1.1 许可
+docs/           截图与构建说明
 ```
 
 ## 改了哪些源码
